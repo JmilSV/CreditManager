@@ -109,32 +109,44 @@ namespace BankBlack30102016
         {
             if(DebitorInDb != null)
                 return DebitorInDb;
-            return "";
+            return string.Empty;
         }
 
         public bool AddNewPayment(string sum, int id)
         {
+            int s = Convert.ToInt32(sum);
             using (conn = new SqlConnection(connectionString))
             {
+
+                commandString = string.Format(@"INSERT INTO Payment
+                                                    (Sum, Date, CreditId)
+                                                    VALUES (@sum, @date, @creditId)");
+
+                SqlCommand comm = new SqlCommand(commandString, conn);
+
+                comm.Parameters.AddWithValue("@sum", s);
+                comm.Parameters.AddWithValue("@date", DateTime.Now);
+                comm.Parameters.AddWithValue("@creditId", id);
+
                 conn.Open();
                 SqlTransaction sqlTransaction = conn.BeginTransaction();
-
-                comm = conn.CreateCommand();
-
                 comm.Transaction = sqlTransaction;
+               // comm = conn.CreateCommand();
 
                 try
                 {
-                    commandString = string.Format(@"INSERT INTO Payment
-                                                    (Sum, Date, CreditId)
-                                                    VALUES (@sum, @date, @creditId)");
-                    comm.CommandText = commandString;
                     if (comm.ExecuteNonQuery() == 1)
                     {
                         commandString = string.Format(@"UPDATE Credit
-                                                    SET Balans = Balans - {0}
-                                                    WHERE Id = {1}", sum, id);
-                        comm.CommandText = commandString;
+                                                    SET Balans = Balans - @sum
+                                                    WHERE Id = @creditId");
+
+                        comm = new SqlCommand(commandString, conn);
+                        comm.Parameters.AddWithValue("@sum", s);
+                        comm.Parameters.AddWithValue("@creditId", id);
+
+                        comm.Transaction = sqlTransaction;
+
                         if (comm.ExecuteNonQuery() == 1)
                         {
                             sqlTransaction.Commit();
